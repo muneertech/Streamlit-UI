@@ -36,13 +36,14 @@ st.markdown(
     """
 )
 
+## step1) Upload document and load text
 uploaded_file = st.file_uploader("Upload a PDF or TXT file", type=["pdf", "txt"])
 
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 
 if uploaded_file:
-    # step1: save the uploaded file to a temporary local path
+    # step2: save the uploaded file to a temporary local path
     file_ext = os.path.splitext(uploaded_file.name)[1].lower()
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
@@ -50,13 +51,14 @@ if uploaded_file:
         temp_path = tmp_file.name
 
     try:
-        # step2: load text from the uploaded document
+        # step3: load text from the uploaded document
         if file_ext == ".pdf":
             loader = PyPDFLoader(temp_path)
         else:
             loader = TextLoader(temp_path, encoding="utf-8")
 
         documents = loader.load()
+        # step4: split the document text into smaller chunks for embedding
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
         docs = text_splitter.split_documents(documents)
 
@@ -68,8 +70,10 @@ if uploaded_file:
             )
         else:
             try:
-                # step3: generate embeddings for chunks and store them in FAISS
+                # step5: generate embeddings for chunks and store them in FAISS
                 embeddings = OpenAIEmbeddings()
+
+                # step6: create a FAISS vector store from the document chunks and embeddings
                 vectorstore = FAISS.from_documents(docs, embeddings)
                 st.session_state.vectorstore = vectorstore
                 st.success(f"Document processed into {len(docs)} chunks.")
@@ -86,7 +90,7 @@ if uploaded_file:
 query = st.text_input("Ask a question about the document")
 
 if query and st.session_state.vectorstore:
-    # step4: retrieve relevant chunks from the vector store and answer the query
+    # step7: retrieve relevant chunks from the vector store and answer the query
     retriever = st.session_state.vectorstore.as_retriever()
     llm = ChatOpenAI(model="gpt-4o-mini")
 
@@ -114,3 +118,23 @@ Answer:"""
         show_openai_quota_message()
     except Exception as exc:
         st.error(f"Unable to answer the question: {exc}")
+
+
+
+
+
+'''
+Upload file
+   ↓
+Split text
+   ↓
+Generate embeddings
+   ↓
+Store in FAISS
+   ↓
+Ask question
+   ↓
+Retrieve chunks
+   ↓
+LLM answer
+'''
