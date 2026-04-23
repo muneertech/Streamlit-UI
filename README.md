@@ -31,20 +31,20 @@ A small Streamlit app for chatting with the contents of an uploaded `.pdf` or `.
 
 ## Setup
 
-1. Create and activate a virtual environment.
+step1: Create and activate a virtual environment.
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-2. Install dependencies.
+step2: Install the Python dependencies.
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-3. Add your OpenAI API key to `.env`.
+step3: Add your OpenAI API key to a `.env` file.
 
 ```env
 OPENAI_API_KEY=your_api_key_here
@@ -52,21 +52,29 @@ OPENAI_API_KEY=your_api_key_here
 
 ## Run The App
 
+step4: Start Streamlit.
+
 ```powershell
 streamlit run app.py
 ```
 
-Then open the local URL shown by Streamlit in your browser.
+step5: Open the local URL shown by Streamlit in your browser.
 
-## How It Works
+## Important Steps
 
-1. The user uploads a `.pdf` or `.txt` file.
-2. The app stores the upload temporarily on disk.
-3. LangChain loaders extract the document text.
-4. The text is split into chunks with overlap.
-5. OpenAI embeddings are generated for each chunk.
-6. FAISS stores those embeddings for retrieval.
-7. User questions are answered with retrieved context plus `gpt-4o-mini`.
+step1: Upload a `.pdf` or `.txt` file in the Streamlit UI.
+
+step2: The app saves the upload temporarily and detects the file type.
+
+step3: The document loader extracts text from the file.
+
+step4: The text is split into overlapping chunks for more reliable retrieval.
+
+step5: OpenAI generates embeddings for each chunk and FAISS builds the vector index.
+
+step6: Enter a question about the document in the text input.
+
+step7: The app retrieves relevant chunks and uses `gpt-4o-mini` to answer based on context.
 
 ## Error Handling Included
 

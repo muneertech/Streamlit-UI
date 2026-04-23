@@ -24,12 +24,25 @@ def show_openai_quota_message() -> None:
 st.set_page_config(page_title="RAG Document Chat")
 st.title("Chat With Your Documents")
 
+st.markdown(
+    """
+    **Important steps**
+
+    1. step1: Upload a PDF or TXT file.
+    2. step2: The app extracts and splits the document text.
+    3. step3: OpenAI generates embeddings for the document chunks.
+    4. step4: FAISS stores the embeddings and enables retrieval.
+    5. step5: Ask a question and get an answer from the document context.
+    """
+)
+
 uploaded_file = st.file_uploader("Upload a PDF or TXT file", type=["pdf", "txt"])
 
 if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 
 if uploaded_file:
+    # step1: save the uploaded file to a temporary local path
     file_ext = os.path.splitext(uploaded_file.name)[1].lower()
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
@@ -37,6 +50,7 @@ if uploaded_file:
         temp_path = tmp_file.name
 
     try:
+        # step2: load text from the uploaded document
         if file_ext == ".pdf":
             loader = PyPDFLoader(temp_path)
         else:
@@ -54,6 +68,7 @@ if uploaded_file:
             )
         else:
             try:
+                # step3: generate embeddings for chunks and store them in FAISS
                 embeddings = OpenAIEmbeddings()
                 vectorstore = FAISS.from_documents(docs, embeddings)
                 st.session_state.vectorstore = vectorstore
@@ -71,6 +86,7 @@ if uploaded_file:
 query = st.text_input("Ask a question about the document")
 
 if query and st.session_state.vectorstore:
+    # step4: retrieve relevant chunks from the vector store and answer the query
     retriever = st.session_state.vectorstore.as_retriever()
     llm = ChatOpenAI(model="gpt-4o-mini")
 
