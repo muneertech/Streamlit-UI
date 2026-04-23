@@ -55,10 +55,24 @@ OPENAI_API_KEY=your_api_key_here
 step4: Start Streamlit.
 
 ```powershell
-streamlit run app.py
+.\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
 step5: Open the local URL shown by Streamlit in your browser.
+
+To run the local Hugging Face version instead, use:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app1.py
+```
+
+If you see `ModuleNotFoundError: No module named 'sentence_transformers'`, Streamlit is usually
+running with a different Python interpreter than the project's `.venv`. Reinstall dependencies in
+the virtual environment if needed:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
 ## Important Steps
 

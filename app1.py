@@ -3,26 +3,23 @@ import tempfile
 
 import streamlit as st
 from dotenv import load_dotenv
-from openai.error import RateLimitError
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_community.vectorstores import FAISS
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from huggingface_utils import HuggingFaceEmbeddings, generate_answer
 
 load_dotenv()
 
 
-def show_openai_quota_message() -> None:
+def show_model_error_message() -> None:
     st.error(
-        "OpenAI rejected the request because the API quota for this key is exhausted. "
-        "Add billing or use a key with available quota, then try again."
+        "The Hugging Face model failed to generate a response. "
+        "Try again or choose a smaller model if needed."
     )
 
-st.set_page_config(page_title="RAG Document Chat")
-st.title("Chat With Your Documents")
+st.set_page_config(page_title="RAG Document Chat - Hugging Face")
+st.title("Chat With Your Documents (Hugging Face)")
 
 st.markdown(
     """
@@ -30,7 +27,7 @@ st.markdown(
 
     1. step1: Upload a PDF or TXT file.
     2. step2: The app extracts and splits the document text.
-    3. step3: OpenAI generates embeddings for the document chunks.
+    3. step3: Hugging Face generates embeddings for the document chunks.
     4. step4: FAISS stores the embeddings and enables retrieval.
     5. step5: Ask a question and get an answer from the document context.
     """
@@ -70,14 +67,14 @@ if uploaded_file:
             )
         else:
             try:
-                # step5: generate embeddings for chunks and store them in FAISS
-                embeddings = OpenAIEmbeddings()
+                # step5: generate embeddings for chunks and store them in FAISS using Hugging Face
+                embeddings = HuggingFaceEmbeddings()
                 vectorstore = FAISS.from_documents(docs, embeddings)
                 st.session_state.vectorstore = vectorstore
                 st.success(f"Document processed into {len(docs)} chunks.")
-            except RateLimitError:
+            except Exception as exc:
                 st.session_state.vectorstore = None
-                show_openai_quota_message()
+                st.error(f"Unable to generate embeddings: {exc}")
     except Exception as exc:
         st.session_state.vectorstore = None
         st.error(f"Unable to process the uploaded file: {exc}")
@@ -88,47 +85,15 @@ if uploaded_file:
 query = st.text_input("Ask a question about the document")
 
 if query and st.session_state.vectorstore:
-    # step7: retrieve relevant chunks from the vector store and answer the query
-    retriever = st.session_state.vectorstore.as_retriever()
-    llm = ChatOpenAI(model="gpt-4o-mini")
-
-    prompt = ChatPromptTemplate.from_template(
-        """You are a helpful assistant answering questions based on the provided context.
-
-Context:
-{context}
-
-Question: {input}
-
-Answer:"""
-    )
+    # step7: retrieve relevant chunks from the vector store and answer the query with Hugging Face
+    docs = st.session_state.vectorstore.similarity_search(query, k=4)
+    context = "\n\n".join(doc.page_content for doc in docs)
 
     try:
-        document_chain = create_stuff_documents_chain(llm, prompt)
-        qa_chain = create_retrieval_chain(retriever, document_chain)
-
-        result = qa_chain.invoke({"input": query})
-        answer = result.get("answer", "")
+        answer = generate_answer(context, query)
 
         st.subheader("Answer")
         st.write(answer)
-    except RateLimitError:
-        show_openai_quota_message()
     except Exception as exc:
+        show_model_error_message()
         st.error(f"Unable to answer the question: {exc}")
-
-'''
-Upload file
-   ↓
-Split text
-   ↓
-Generate embeddings
-   ↓
-Store in FAISS
-   ↓
-Ask question
-   ↓
-Retrieve chunks
-   ↓
-LLM answer
-'''
